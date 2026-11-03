@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PixelCast — Sovereign Google Pixel Screen Mirror & Tailscale Mesh Bridge</title>
+  <meta name="description" content="Ultra-low latency Google Pixel screenshare, camera bridge, and sovereign wireless ADB mirroring workstation over Tailscale mesh.">
+  <meta name="author" content="1nc0gn30 (@1nc0gn30)">
+  
+  <!-- OpenGraph & Twitter -->
+  <meta property="og:title" content="PixelCast — Sovereign Google Pixel Screen Mirror & Tailscale Mesh Bridge">
+  <meta property="og:description" content="Ultra-low latency Google Pixel screenshare, camera bridge, and sovereign wireless ADB mirroring workstation over Tailscale mesh.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nullai.tech/pixel-cast">
+  <meta property="og:image" content="https://nullai.tech/assets/pixel-cast-og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@1nc0gn30">
+  <meta name="twitter:creator" content="@1nc0gn30">
+  <meta name="twitter:title" content="PixelCast — Sovereign Google Pixel Screen Mirror">
+  <meta name="twitter:description" content="Instant Google Pixel screen mirror and hardware control over Tailscale mesh.">
+  <meta name="twitter:image" content="https://nullai.tech/assets/pixel-cast-og.jpg">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;600;700&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+
+  <!-- AEO & SEO Schema.org Graph -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "name": "PixelCast Sovereign Bridge",
+        "url": "https://nullai.tech/pixel-cast",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux, Android",
+        "description": "Ultra-low latency Google Pixel screenshare, camera bridge, and sovereign wireless ADB mirroring workstation over Tailscale mesh.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "1nc0gn30",
+          "alternateName": "1nc0gn30",
+          "url": "https://nullai.tech"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How does PixelCast connect a Google Pixel over Tailscale?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "PixelCast queries the local Tailscale mesh daemon to discover active Android peers such as Pixel 10 Pro. It establishes low-latency TCP/IP ADB tunnels or direct WebSocket media streams without cables or cloud relays."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is any paid license or third-party cloud required?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Zero cloud dependencies, zero paywalls, and zero telemetry. PixelCast is 100% open-access sovereign software running locally on ZothOS."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <!-- Ambient Aurora Glow Canvas -->
+  <div class="aurora-backdrop" aria-hidden="true"></div>
+
+  <!-- Top Sovereign Header Bar -->
+  <header class="top-nav">
+    <div class="brand-zone">
+      <div class="logo-glyph" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+      </div>
+      <div class="brand-titles">
+        <span class="brand-name">PixelCast <span class="tag-badge">ZothOS v1.0</span></span>
+        <span class="brand-sub">Sovereign Google Pixel Mesh Bridge</span>
+      </div>
+    </div>
+
+    <!-- Live Telemetry Status Pill -->
+    <div class="mesh-telemetry-pill">
+      <span class="status-indicator-dot online" id="meshLed"></span>
+      <span class="telemetry-label" id="meshStatusText">Tailscale Mesh Active</span>
+      <span class="telemetry-latency" id="meshPingText">~40ms</span>
+    </div>
+
+    <!-- Actions & Support -->
+    <div class="nav-actions">
+      <a href="/mobile" target="_blank" class="mobile-portal-btn" title="Open Mobile Companion">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <span>Mobile View</span>
+      </a>
+      <a href="https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X" target="_blank" rel="noopener noreferrer" class="coffee-pill-btn">
+        <span>☕ Buy Us a Coffee</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Workstation Layout -->
+  <main class="workstation-container">
+    
+    <!-- Bento Grid Section -->
+    <div class="bento-grid">
+
+      <!-- CARD 1: Detected Pixel Device & Fast Cast Launch -->
+      <section class="bento-card hero-device-card border-beam">
+        <div class="card-header">
+          <div class="header-icon-box">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Target Device & Mesh Link</h2>
+            <p class="card-desc">Google Pixel auto-discovery via Tailscale mesh</p>
+          </div>
+        </div>
+
+        <div class="device-hero-spec">
+          <div class="device-identity">
+            <div class="device-avatar">
+              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--gold-accent)" stroke-width="1.8">
+                <rect x="5" y="2" width="14" height="20" rx="3"></rect>
+                <circle cx="12" cy="18" r="1"></circle>
+              </svg>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div class="device-select-row" style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem; min-width: 0;">
+                <select id="deviceSelectDropdown" class="retro-select" style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(0.85rem, 3.2vw, 1.15rem); max-width: 100%; width: 100%; color: #FFF; background: rgba(0,0,0,0.5); border-color: var(--gold-accent); cursor: pointer;">
+                  <option value="100.89.243.63">Google Pixel 10 (100.89.243.63)</option>
+                  <option value="100.106.39.46">Google Pixel 10 Pro (100.106.39.46)</option>
+                </select>
+              </div>
+              <div class="device-ip-badge">
+                <span class="ts-ip-code" id="deviceIpText">100.106.39.46</span>
+                <span class="link-type-badge" id="adbStatusBadge">ADB Connected</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Battery & Thermal HUD -->
+          <div class="battery-thermal-strip">
+            <div class="hud-stat-item">
+              <span class="hud-label">Battery</span>
+              <span class="hud-value" id="hudBatteryVal">24% ⚡</span>
+            </div>
+            <div class="hud-stat-item">
+              <span class="hud-label">Thermal</span>
+              <span class="hud-value" id="hudTempVal">35.2°C</span>
+            </div>
+            <div class="hud-stat-item">
+              <span class="hud-label">Host Node</span>
+              <span class="hud-value" id="hudHostVal">100.106.132.5</span>
+            </div>
+            <div class="hud-stat-item">
+              <span class="hud-label">Latency</span>
+              <span class="hud-value" id="hudPingVal">40 ms</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1-Click Launch Button Row -->
+        <div class="stream-action-row">
+          <button id="btnLaunchScrcpy" class="btn-primary-launch">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span id="launchBtnText">Launch 60fps Desktop Mirror</span>
+          </button>
+          <button id="btnStopScrcpy" class="btn-secondary-stop" disabled>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="6" y="6" width="12" height="12"></rect>
+            </svg>
+            <span>Stop Mirror</span>
+          </button>
+          <button id="btnTakeScreenshot" class="btn-glass-icon" title="Take Pixel Screenshot">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19 4h-3.5l-1.5-2h-4L8.5 4H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z"></path>
+            </svg>
+            <span>Snapshot</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- CARD 2: Interactive Live Preview & Web Monitor -->
+      <section class="bento-card monitor-card">
+        <div class="card-header monitor-header">
+          <div>
+            <h2 class="card-title">Live Screen & Camera Monitor</h2>
+            <p class="card-desc">Interactive viewport & frame receiver</p>
+          </div>
+          <div class="monitor-controls">
+            <span class="live-pill" id="livePill">READY</span>
+            <button id="btnFullscreenCanvas" class="mini-icon-btn" title="Toggle Fullscreen">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="phone-viewport-stage" id="viewportStage">
+          <div class="phone-chassis">
+            <div class="camera-notch"></div>
+            <!-- Canvas or Live Image Frame -->
+            <div class="screen-canvas-wrapper" id="canvasWrapper">
+              <img id="liveScreenImage" src="/api/screenshot" alt="Google Pixel Live Screen Viewport" class="live-frame-img">
+              <div class="stream-overlay-idle" id="streamIdleOverlay">
+                <div class="idle-spinner" aria-hidden="true"></div>
+                <p class="idle-title">Desktop Mirror is Standby</p>
+                <p class="idle-sub">Click "Launch 60fps Desktop Mirror" or tap "Stream Camera" on Pixel</p>
+              </div>
+            </div>
+            <div class="phone-home-indicator"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 3: Sovereign Remote Navigation HUD -->
+      <section class="bento-card remote-card">
+        <div class="card-header">
+          <div class="header-icon-box">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Remote Hardware Control HUD</h2>
+            <p class="card-desc">Zero-latency Android keyevents & volume</p>
+          </div>
+        </div>
+
+        <!-- Android Nav Key Bar -->
+        <div class="hardware-key-pad">
+          <button class="hw-btn" data-key="back" title="Back (KeyEvent 4)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span>Back</span>
+          </button>
+          <button class="hw-btn" data-key="home" title="Home (KeyEvent 3)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+            </svg>
+            <span>Home</span>
+          </button>
+          <button class="hw-btn" data-key="recents" title="Recents / App Switcher (KeyEvent 187)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            </svg>
+            <span>Apps</span>
+          </button>
+          <button class="hw-btn hw-power-btn" data-key="power" title="Power / Screen Wake (KeyEvent 26)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18.36 6.64a9 9 0 11-12.73 0M12 2v10"></path>
+            </svg>
+            <span>Power</span>
+          </button>
+        </div>
+
+        <!-- Volume Strip -->
+        <div class="volume-action-strip">
+          <span class="vol-label">Volume:</span>
+          <button class="mini-vol-btn" data-key="voldown" title="Volume Down (KeyEvent 25)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            </svg>
+            <span>Vol -</span>
+          </button>
+          <button class="mini-vol-btn" data-key="volup" title="Volume Up (KeyEvent 24)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"></path>
+            </svg>
+            <span>Vol +</span>
+          </button>
+          <button class="mini-vol-btn" data-key="mute" title="Mute (KeyEvent 164)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+            <span>Mute</span>
+          </button>
+        </div>
+
+        <!-- Fast Keyboard Text Typer & Clipboard -->
+        <div class="typer-bridge-box">
+          <label for="typerInput" class="box-sublabel">Type on Pixel Keyboard</label>
+          <div class="typer-input-row">
+            <input type="text" id="typerInput" placeholder="Enter text to type on phone..." class="retro-input">
+            <button id="btnSendText" class="btn-accent-sm">Send</button>
+          </div>
+          <div class="clipboard-sync-row">
+            <button id="btnPushClipboard" class="pill-action-btn">Copy to Pixel Clipboard</button>
+            <button id="btnPullClipboard" class="pill-action-btn">Read Pixel Clipboard</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 4: Instant QR Code & Mobile Connection -->
+      <section class="bento-card qr-card">
+        <div class="card-header">
+          <div class="header-icon-box">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Pixel 1-Tap QR Connect</h2>
+            <p class="card-desc">Scan with Google Pixel camera on Tailscale</p>
+          </div>
+        </div>
+
+        <div class="qr-content-wrapper">
+          <div class="qr-frame">
+            <img id="qrCodeImg" src="/api/qr" alt="QR Code to connect Google Pixel over Tailscale" class="qr-matrix-img">
+          </div>
+          <div class="qr-meta-box">
+            <div class="qr-url-row">
+              <span class="url-code" id="mobileCastUrl">http://100.106.132.5:8148/mobile</span>
+              <button id="btnCopyUrl" class="copy-url-btn" title="Copy Mobile URL">Copy</button>
+            </div>
+            <p class="qr-instruction">
+              Connected to Tailscale on your Pixel? Open camera, point at the code, and tap to launch instant camera casting or file drop.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 5: Scrcpy Stream Preferences & Tuners -->
+      <section class="bento-card prefs-card">
+        <div class="card-header">
+          <div class="header-icon-box">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Stream Configuration</h2>
+            <p class="card-desc">Hardware encoding, bitrate & thermal limits</p>
+          </div>
+        </div>
+
+        <div class="prefs-form-grid">
+          <div class="pref-field">
+            <label for="prefResolution">Max Resolution</label>
+            <select id="prefResolution" class="retro-select">
+              <option value="1080" selected>1080p Full HD (Crisp)</option>
+              <option value="1440">1440p Quad HD (Ultra)</option>
+              <option value="720">720p HD (Low Bandwidth)</option>
+            </select>
+          </div>
+
+          <div class="pref-field">
+            <label for="prefBitrate">Video Bitrate</label>
+            <select id="prefBitrate" class="retro-select">
+              <option value="8M" selected>8 Mbps (Standard)</option>
+              <option value="16M">16 Mbps (Master Quality)</option>
+              <option value="4M">4 Mbps (Conserve Mesh)</option>
+              <option value="2M">2 Mbps (High Latency)</option>
+            </select>
+          </div>
+
+          <div class="pref-field">
+            <label for="prefFps">Max Framerate</label>
+            <select id="prefFps" class="retro-select">
+              <option value="60" selected>60 FPS (Silky Smooth)</option>
+              <option value="30">30 FPS (Power Saver)</option>
+            </select>
+          </div>
+
+          <div class="pref-toggles-list">
+            <label class="toggle-control">
+              <input type="checkbox" id="prefAudio" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Audio Forwarding (Opus)</span>
+            </label>
+            <label class="toggle-control">
+              <input type="checkbox" id="prefScreenOff">
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Turn Phone Screen Off (Cooling)</span>
+            </label>
+            <label class="toggle-control">
+              <input type="checkbox" id="prefRecord">
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Record Session to MP4</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 6: Wireless Debugging & Pairing Helper -->
+      <section class="bento-card pairing-card">
+        <div class="card-header">
+          <div class="header-icon-box">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Wireless ADB Pairing Helper</h2>
+            <p class="card-desc">Android 11+ Developer Options 6-digit pair</p>
+          </div>
+        </div>
+
+        <div class="pairing-box">
+          <p class="pairing-sub">Need to pair with Android's "Pair device with pairing code"?</p>
+          <div class="pair-inputs-row">
+            <input type="number" id="pairPortInput" placeholder="Pair Port (e.g. 41235)" class="retro-input-sm">
+            <input type="text" id="pairCodeInput" placeholder="6-digit code" class="retro-input-sm">
+            <button id="btnPairSubmit" class="btn-gold-sm">Pair</button>
+          </div>
+          <div class="pair-tools-row">
+            <button id="btnScanPorts" class="pill-action-btn">Scan Open ADB Ports</button>
+            <button id="btnReconnectAdb" class="pill-action-btn">Reconnect :5555</button>
+          </div>
+          <div id="pairResultMsg" class="pair-result-text"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- High-Craft Footer Attribution & Support -->
+  <footer class="sovereign-footer">
+    <div class="footer-inner">
+      <div class="attribution-block">
+        <p class="attr-text">Engineered by 1nc0gn30 • NullAI (<a href="https://github.com/1nc0gn30" target="_blank" rel="noopener noreferrer">@1nc0gn30</a>) • <a href="https://nullai.tech" target="_blank" rel="noopener noreferrer">NullAI Platform</a></p>
+        <p class="attr-sub">ZothOS Native Cast Engine • Repository: <a href="https://github.com/1nc0gn30/pixel-cast" target="_blank" rel="noopener noreferrer">github.com/1nc0gn30/pixel-cast</a></p>
+      </div>
+
+      <div class="support-block">
+        <a href="https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X" target="_blank" rel="noopener noreferrer" class="coffee-link">
+          ☕ Buy Us a Coffee
+        </a>
+        <div class="solana-tip-chip" title="Click to copy Solana Tip Address">
+          <span class="sol-badge">SOL</span>
+          <span class="sol-addr" id="solTipAddr">GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+  <script src="/assets/sovereign-upgrade.js" defer></script>
+</body>
+</html>

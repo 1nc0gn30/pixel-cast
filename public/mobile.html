@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PixelCast Mobile — Google Pixel Companion</title>
+  <meta name="description" content="PixelCast mobile companion for real-time camera streaming, file transfer, and wireless cast over Tailscale mesh.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #070709;
+      --card-bg: rgba(18, 18, 24, 0.85);
+      --card-border: rgba(245, 158, 11, 0.2);
+      --gold-accent: #F59E0B;
+      --gold-glow: rgba(245, 158, 11, 0.35);
+      --text-main: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --green-led: #10B981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      max-width: 680px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .mobile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1rem;
+      backdrop-filter: blur(12px);
+    }
+    .brand-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--text-main);
+    }
+    .brand-title span { color: var(--gold-accent); }
+    .mesh-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34D399;
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .mesh-badge::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green-led);
+      box-shadow: 0 0 8px var(--green-led);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1.25rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Camera Stage */
+    .camera-box {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: 240px;
+      background: radial-gradient(circle at 50% 45%, #171b29 0%, #090a10 100%);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video#camPreview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    canvas#captureCanvas { display: none; }
+
+    .cam-overlay {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .cam-btn {
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #FFF;
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #F59E0B, #D97706);
+      color: #000;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 0.85rem 1.2rem;
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 14px var(--gold-glow);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-main);
+      border: 1px solid rgba(255,255,255,0.15);
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .input-field {
+      width: 100%;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      color: #FFF;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--gold-accent);
+    }
+
+    .file-drop-zone {
+      border: 2px dashed rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.03);
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      text-align: center;
+      cursor: pointer;
+    }
+    .file-drop-zone p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; }
+
+    .status-msg {
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--gold-accent);
+      min-height: 1.2rem;
+      text-align: center;
+    }
+
+    .footer {
+      margin-top: auto;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 1rem 0;
+    }
+    .footer a { color: var(--gold-accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <header class="mobile-header">
+    <div class="brand-title">Pixel<span>Cast</span></div>
+    <div class="mesh-badge" id="meshPill">Tailscale OK</div>
+  </header>
+
+  <!-- Live Desk / Camera Streamer -->
+  <section class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--gold-accent)" stroke-width="2">
+        <path d="M23 7l-7 5 7 5V7z"></path>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+      </svg>
+      <span>Live Camera / Desk Lens</span>
+    </div>
+    
+    <div class="camera-box">
+      <video id="camPreview" autoplay playsinline muted></video>
+      <canvas id="captureCanvas"></canvas>
+      <div class="cam-overlay">
+        <button id="btnSwitchCam" class="cam-btn">Flip Lens</button>
+      </div>
+    </div>
+
+    <button id="btnToggleCamStream" class="btn-primary">
+      <span>Start Live Camera Cast</span>
+    </button>
+    <div id="camStatusMsg" class="status-msg">Ready to stream camera to desktop</div>
+  </section>
+
+  <!-- File & Photo Drop to Desktop -->
+  <section class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--gold-accent)" stroke-width="2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      <span>Send Photo / File to Desktop</span>
+    </div>
+    <label for="mobileFileInput" class="file-drop-zone">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--gold-accent)" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="16"></line>
+        <line x1="8" y1="12" x2="16" y2="12"></line>
+      </svg>
+      <p>Tap to select or capture photo</p>
+      <input type="file" id="mobileFileInput" style="display: none;">
+    </label>
+    <div id="uploadStatusMsg" class="status-msg"></div>
+  </section>
+
+  <!-- Fast Text / Clipboard Drop -->
+  <section class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--gold-accent)" stroke-width="2">
+        <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"></path>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+      </svg>
+      <span>Send Text to Desktop Clipboard</span>
+    </div>
+    <input type="text" id="mobileTextInput" placeholder="Enter text or URL..." class="input-field">
+    <button id="btnSendMobileText" class="btn-secondary">Send to Desktop</button>
+    <div id="textStatusMsg" class="status-msg"></div>
+  </section>
+
+  <footer class="footer">
+    <p>PixelCast • Engineered by 1nc0gn30 • NullAI (<a href="https://github.com/1nc0gn30" target="_blank">@1nc0gn30</a>)</p>
+  </footer>
+
+  <script>
+    let ws = null;
+    let streamActive = false;
+    let mediaStream = null;
+    let facingMode = 'environment';
+    let frameInterval = null;
+
+    const btnToggle = document.getElementById('btnToggleCamStream');
+    const btnSwitch = document.getElementById('btnSwitchCam');
+    const camPreview = document.getElementById('camPreview');
+    const captureCanvas = document.getElementById('captureCanvas');
+    const camStatusMsg = document.getElementById('camStatusMsg');
+    const mobileFileInput = document.getElementById('mobileFileInput');
+    const uploadStatusMsg = document.getElementById('uploadStatusMsg');
+    const mobileTextInput = document.getElementById('mobileTextInput');
+    const btnSendMobileText = document.getElementById('btnSendMobileText');
+    const textStatusMsg = document.getElementById('textStatusMsg');
+
+    // Init WebSocket to Host
+    function initWebSocket() {
+      const loc = window.location;
+      const wsProtocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${loc.host}/ws`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        document.getElementById('meshPill').innerText = 'Connected';
+      };
+      ws.onclose = () => {
+        document.getElementById('meshPill').innerText = 'Reconnecting...';
+        setTimeout(initWebSocket, 2000);
+      };
+    }
+    initWebSocket();
+
+    async function startCamera() {
+      try {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach(t => t.stop());
+        }
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false
+        });
+        camPreview.srcObject = mediaStream;
+        return true;
+      } catch (err) {
+        camStatusMsg.innerText = 'Camera access error: ' + err.message;
+        return false;
+      }
+    }
+
+    btnToggle.addEventListener('click', async () => {
+      if (!streamActive) {
+        const ok = await startCamera();
+        if (!ok) return;
+
+        streamActive = true;
+        btnToggle.innerHTML = '<span>Stop Live Camera Cast</span>';
+        btnToggle.style.background = '#EF4444';
+        camStatusMsg.innerText = 'Streaming live frames to ZothOS desktop...';
+
+        const ctx = captureCanvas.getContext('2d');
+        frameInterval = setInterval(() => {
+          if (!streamActive || !mediaStream || !ws || ws.readyState !== WebSocket.OPEN) return;
+          if (camPreview.videoWidth === 0) return;
+
+          captureCanvas.width = 640;
+          captureCanvas.height = Math.round((camPreview.videoHeight / camPreview.videoWidth) * 640);
+          ctx.drawImage(camPreview, 0, 0, captureCanvas.width, captureCanvas.height);
+          const base64Data = captureCanvas.toDataURL('image/jpeg', 0.65);
+
+          ws.send(JSON.stringify({
+            type: 'camera_frame',
+            frame: base64Data
+          }));
+        }, 100); // 10 fps lightweight frame stream over mesh
+
+      } else {
+        streamActive = false;
+        clearInterval(frameInterval);
+        if (mediaStream) {
+          mediaStream.getTracks().forEach(t => t.stop());
+          mediaStream = null;
+        }
+        btnToggle.innerHTML = '<span>Start Live Camera Cast</span>';
+        btnToggle.style.background = '';
+        camStatusMsg.innerText = 'Camera stream stopped';
+      }
+    });
+
+    btnSwitch.addEventListener('click', async () => {
+      facingMode = facingMode === 'environment' ? 'user' : 'environment';
+      if (streamActive) {
+        await startCamera();
+      }
+    });
+
+    // File Upload
+    mobileFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      uploadStatusMsg.innerText = `Uploading ${file.name}...`;
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          uploadStatusMsg.innerText = `✓ Saved to desktop (${file.name})`;
+        } else {
+          uploadStatusMsg.innerText = `Upload failed: ${data.error}`;
+        }
+      } catch (err) {
+        uploadStatusMsg.innerText = 'Upload error: ' + err.message;
+      }
+    });
+
+    // Send Text to Desktop
+    btnSendMobileText.addEventListener('click', async () => {
+      const text = mobileTextInput.value.trim();
+      if (!text) return;
+      try {
+        const res = await fetch('/api/control/clipboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        if (data.success) {
+          textStatusMsg.innerText = '✓ Copied to desktop & phone clipboard';
+          mobileTextInput.value = '';
+        }
+      } catch (err) {
+        textStatusMsg.innerText = 'Failed to send text: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

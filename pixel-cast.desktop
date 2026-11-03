@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=PixelCast
+GenericName=Pixel Screen Mirror & Hardware Bridge
+Comment=Ultra-low latency Google Pixel screenshare & ADB mirroring over Tailscale
+Exec=/usr/local/bin/pixel-cast gui
+Icon=video-display
+Terminal=false
+Categories=Utility;RemoteAccess;Development;
+Keywords=pixel;android;mirror;cast;tailscale;scrcpy;adb;screenshare;
+StartupNotify=true

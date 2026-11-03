@@ -1,0 +1,41 @@
+{
+  "repo_id": "pixel-cast",
+  "title": "Pixel Cast",
+  "engineered_by": "1nc0gn30 (@1nc0gn30) \u2022 NullAI Platform",
+  "gpu_engine": "NVIDIA A100 80GB PCIe (ComfyUI FLUX.1 + Qwen2.5-Coder-32B + Trimesh GLB)",
+  "archetype": "tesseract",
+  "accent_hex": "#38BDF8",
+  "qwen32b_design_spec": "Pixel Cast: Tesseract UI, hex #38BDF8 accents, 8-bit style, dynamic lighting, seamless transitions, retro-futuristic aesthetic.",
+  "assets": {
+    "hero_4k": "/assets/gpu-hero-4k.png",
+    "og_banner": "/og-banner.jpg",
+    "model_3d_glb": "/assets/gpu-artifact.glb",
+    "showreel_webm": "/assets/gpu-showreel.webm",
+    "ad_mp4": "/assets/gpu-ad-15s.mp4"
+  },
+  "benchmark_ms": {
+    "index": 53,
+    "total_repos": 99,
+    "repo_id": "pixel-cast",
+    "title": "Pixel Cast",
+    "archetype": "tesseract",
+    "accent_hex": "#38BDF8",
+    "glb_ms": 869,
+    "flux_hero_ms": 8929,
+    "flux_og_ms": 6205,
+    "video_ms": 2642,
+    "qwen32b_ms": 4253,
+    "total_ms": 22901,
+    "glb_kb": 126.8,
+    "hero_kb": 969.6,
+    "og_kb": 745.2,
+    "qwen32b_spec": "Pixel Cast: Tesseract UI, hex #38BDF8 accents, 8-bit style, dynamic lighting, seamless transitions, retro-futuristic aesthetic.",
+    "hero_gallery_url": "/gallery/pixel-cast_gpu-hero-4k.png",
+    "og_gallery_url": "/gallery/pixel-cast_og-banner.jpg",
+    "glb_gallery_url": "/gallery/pixel-cast.glb",
+    "vram_used_mb": 55829,
+    "vram_total_mb": 81152,
+    "timestamp": "03:38:32 UTC"
+  },
+  "timestamp": "2026-11-01T03:38:32Z"
+}

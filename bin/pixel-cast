@@ -1,0 +1,329 @@
+#!/usr/bin/env python3
+# ZothOS Desktop (Electron) & Braille TUI Interceptor
+import os as _z_os, sys as _z_sys, shutil as _z_sh, subprocess as _z_sp
+if '--electron' in _z_sys.argv[1:] or (_z_sys.argv[1:] and _z_sys.argv[1] in ('desktop', 'electron')):
+    _z_rem = [a for a in _z_sys.argv[1:] if a not in ('--electron', 'desktop', 'electron')]
+    _z_rdir = _z_os.path.expanduser('~/NullAITech/pixel-cast')
+    _z_el = _z_sh.which('electron') or '/usr/local/bin/electron'
+    _z_sys.exit(_z_sp.run([_z_el, _z_os.path.join(_z_rdir, 'electron', 'main.cjs')] + _z_rem, cwd=_z_rdir).returncode)
+if '--tui' in _z_sys.argv[1:] or (_z_sys.argv[1:] and _z_sys.argv[1] == 'tui'):
+    _z_rem = [a for a in _z_sys.argv[1:] if a not in ('--tui', 'tui')]
+    _z_sys.exit(_z_sp.run(['/usr/local/bin/pixel-cast-tui'] + _z_rem).returncode)
+"""PixelCast CLI — Ultra-low latency Google Pixel screenshare & ADB mirroring over Tailscale."""
+
+import argparse
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+# Add src to sys.path
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = SCRIPT_DIR.parent
+SRC_DIR = PROJECT_DIR / "src"
+
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from pixel_cast.core import PixelCastManager, StreamOptions
+
+def print_banner():
+    banner = r"""
+  ╔═══════════════════════════════════════════════════════════════════╗
+  ║   ____  _          _  ____          _                             ║
+  ║  |  _ \(_)_  _____| |/ ___|__ _ ___| |_                           ║
+  ║  | |_) | \ \/ / _ \ | |   / _` / __| __|                          ║
+  ║  |  __/| |>  <  __/ | |__| (_| \__ \ |_                           ║
+  ║  |_|   |_/_/\_\___|_|\____\__,_|___/\__|                          ║
+  ║                                                                   ║
+  ║  Sovereign Google Pixel Mesh Screen Mirror & Hardware Bridge       ║
+  ║  Engineered by 1nc0gn30 (@1nc0gn30) • NullAI Platform    ║
+  ╚═══════════════════════════════════════════════════════════════════╝
+"""
+    print(banner)
+
+
+def generate_terminal_qr(url: str):
+    """Draw a compact, high-contrast terminal QR code for the mobile cast URL."""
+    try:
+        # Use pyqrcode or simple ASCII blocks representation
+        print(f"\nScan on your Google Pixel to connect over Tailscale:")
+        print(f"URL: {url}\n")
+        # Try qrencode if available
+        import subprocess
+        res = subprocess.run(["qrencode", "-t", "ANSIUTF8", url], capture_output=True, text=True)
+        if res.returncode == 0:
+            print(res.stdout)
+            return
+    except Exception:
+        pass
+
+    # Fallback clean terminal box
+    print("┌──────────────────────────────────────────────────────────┐")
+    print("│ Open this URL on your Pixel (connected to Tailscale):    │")
+    print(f"│  \033[1;33m{url}\033[0m")
+    print("└──────────────────────────────────────────────────────────┘\n")
+
+
+def cmd_status(mgr: PixelCastManager, as_json: bool = False):
+    ts = mgr.get_tailscale_status()
+    devices = mgr.get_adb_devices()
+    pixel_ip = ts.get("pixel", {}).get("ip") if ts.get("pixel") else mgr.known_pixel_ip
+    is_connected, serial = mgr.is_pixel_connected_adb(pixel_ip)
+    stream_status = mgr.get_stream_status()
+    battery = mgr.get_battery_info() if is_connected else None
+
+    data = {
+        "tailscale": ts,
+        "adb": {
+            "connected": is_connected,
+            "serial": serial,
+            "devices": devices,
+        },
+        "stream": stream_status,
+        "battery": battery,
+    }
+
+    if as_json:
+        print(json.dumps(data, indent=2))
+        return
+
+    print_banner()
+    self_node = ts.get("self", {})
+    pixel_node = ts.get("pixel")
+
+    print("\033[1;36m[TAILSCALE MESH]\033[0m")
+    print(f"  • Host Desktop:    {self_node.get('hostname', 'localhost')} ({self_node.get('ip', '127.0.0.1')})")
+    android_devices = ts.get("android_devices", [])
+    if android_devices:
+        print(f"  • Connected Android Devices ({len(android_devices)} found):")
+        for dev in android_devices:
+            ping_s = f"~{dev.get('ping_ms')}ms" if dev.get('ping_ms') else "Active"
+            active_marker = " \033[1;33m[ACTIVE TARGET]\033[0m" if dev.get('ip') == (pixel_node.get('ip') if pixel_node else mgr.known_pixel_ip) else ""
+            print(f"    - \033[1;32m{dev.get('hostname')}\033[0m @ {dev.get('ip')} [{ping_s}]{active_marker}")
+    elif pixel_node:
+        ping_str = f"~{pixel_node.get('ping_ms')}ms" if pixel_node.get("ping_ms") else "Active"
+        print(f"  • Target Device:   \033[1;32m{pixel_node.get('hostname')}\033[0m @ {pixel_node.get('ip')} [{ping_str}]")
+    else:
+        print(f"  • Target Device:   \033[1;33mNot found on mesh (defaulting to {mgr.known_pixel_ip})\033[0m")
+
+    print("\n\033[1;36m[ADB WIRELESS BRIDGE]\033[0m")
+    if is_connected:
+        print(f"  • Status:          \033[1;32mCONNECTED\033[0m (Serial: {serial})")
+        if battery and battery.get("success"):
+            chg = "⚡ Charging" if battery.get("charging") else "Discharging"
+            print(f"  • Battery:         {battery.get('percent')}% ({chg}, {battery.get('temperature_c')}°C)")
+    else:
+        print(f"  • Status:          \033[1;31mNOT CONNECTED\033[0m")
+        print(f"  • Hint:            Run `pixel-cast connect` or `pixel-cast pair <port> <code>`")
+
+    print("\n\033[1;36m[DESKTOP MIRROR (SCRCPY)]\033[0m")
+    if stream_status.get("active"):
+        print(f"  • Stream:          \033[1;32mACTIVE\033[0m (PID: {stream_status.get('pid')}, Uptime: {stream_status.get('uptime_seconds')}s)")
+    else:
+        print(f"  • Stream:          \033[1;30mIDLE\033[0m (Run `pixel-cast stream` to launch)")
+
+    print(f"\n\033[1;34m[WEB STATION]\033[0m")
+    print(f"  • Workstation:     http://{self_node.get('ip', '100.106.132.5')}:8148")
+    print(f"  • Mobile Cast:     http://{self_node.get('ip', '100.106.132.5')}:8148/mobile\n")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="PixelCast — Ultra-low latency Google Pixel screenshare & ADB mirroring over Tailscale",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
+    subparsers = parser.add_subparsers(dest="command", help="Subcommand to execute")
+
+    # status
+    subparsers.add_parser("status", help="Show live Tailscale, ADB, and Scrcpy stream status")
+
+    # connect
+    p_conn = subparsers.add_parser("connect", help="Connect to Pixel over Tailscale ADB")
+    p_conn.add_argument("port", type=int, nargs="?", default=5555, help="Port (default: 5555)")
+    p_conn.add_argument("--ip", type=str, help="Custom IP (default: detected Pixel Tailscale IP)")
+
+    # disconnect
+    p_disc = subparsers.add_parser("disconnect", help="Disconnect ADB target")
+    p_disc.add_argument("port", type=int, nargs="?", default=5555)
+    p_disc.add_argument("--ip", type=str)
+
+    # pair
+    p_pair = subparsers.add_parser("pair", help="Pair with Android Wireless Debugging")
+    p_pair.add_argument("port", type=int, help="5-digit pairing port from Wireless Debugging screen")
+    p_pair.add_argument("code", type=str, help="6-digit pairing code")
+    p_pair.add_argument("--ip", type=str, help="Target IP")
+
+    # stream
+    p_stream = subparsers.add_parser("stream", help="Launch native 60fps Scrcpy mirror window")
+    p_stream.add_argument("--ip", type=str, help="Target device IP (default: detected Pixel)")
+    p_stream.add_argument("--bitrate", default="8M", help="Bitrate (e.g. 4M, 8M, 16M)")
+    p_stream.add_argument("--max-size", type=int, default=1080, help="Max resolution (e.g. 720, 1080, 1440)")
+    p_stream.add_argument("--max-fps", type=int, default=60, help="Max frame rate (e.g. 30, 60)")
+    p_stream.add_argument("--no-audio", action="store_true", help="Disable audio forwarding")
+    p_stream.add_argument("--turn-screen-off", action="store_true", help="Turn phone display off during mirroring")
+    p_stream.add_argument("--stay-awake", action="store_true", default=True, help="Keep device awake while mirroring")
+    p_stream.add_argument("--fullscreen", action="store_true", help="Launch in fullscreen mode")
+    p_stream.add_argument("--record", type=str, help="Record stream directly to MP4 file path")
+
+    # stop
+    subparsers.add_parser("stop", help="Stop running scrcpy stream")
+
+    # screenshot
+    p_shot = subparsers.add_parser("screenshot", help="Capture high-res screenshot from Pixel")
+    p_shot.add_argument("out", nargs="?", default="/tmp/pixel_screenshot.png", help="Output file path")
+
+    # battery
+    subparsers.add_parser("battery", help="Show Pixel battery level and charging state")
+
+    # text
+    p_text = subparsers.add_parser("text", help="Type text into active input field on Pixel")
+    p_text.add_argument("input_text", help="Text to type")
+
+    # key
+    p_key = subparsers.add_parser("key", help="Send Android hardware navigation keyevent")
+    p_key.add_argument("keyname", choices=["home", "back", "power", "recents", "volup", "voldown", "mute"], help="Key to trigger")
+
+    # serve
+    p_srv = subparsers.add_parser("serve", help="Run PixelCast Standalone Web Workstation Server")
+    p_srv.add_argument("--host", default="0.0.0.0", help="Host interface (default 0.0.0.0)")
+    p_srv.add_argument("--port", type=int, default=8148, help="Port (default 8148)")
+
+    # qr
+    subparsers.add_parser("qr", help="Display QR code in terminal for instant Pixel connection")
+
+    # gui
+    subparsers.add_parser("gui", help="Open PixelCast Web Workstation in default browser")
+
+    args = parser.parse_args()
+    mgr = PixelCastManager()
+
+    if not args.command or args.command == "status":
+        cmd_status(mgr, as_json=args.json)
+        return
+
+    if args.command == "connect":
+        ts = mgr.get_tailscale_status()
+        ip = args.ip or (ts.get("pixel", {}).get("ip") if ts.get("pixel") else mgr.known_pixel_ip)
+        print(f"Connecting to {ip}:{args.port}...")
+        res = mgr.adb_connect(ip, args.port)
+        if args.json:
+            print(json.dumps(res))
+        else:
+            if res.get("success"):
+                print(f"\033[1;32m✓ Successfully connected to {ip}:{args.port}\033[0m")
+            else:
+                print(f"\033[1;31m✗ Failed to connect: {res.get('output') or res.get('error')}\033[0m")
+
+    elif args.command == "disconnect":
+        ts = mgr.get_tailscale_status()
+        ip = args.ip or (ts.get("pixel", {}).get("ip") if ts.get("pixel") else mgr.known_pixel_ip)
+        res = mgr.adb_disconnect(ip, args.port)
+        if args.json:
+            print(json.dumps(res))
+        else:
+            print(f"Disconnected from {ip}:{args.port}")
+
+    elif args.command == "pair":
+        ts = mgr.get_tailscale_status()
+        ip = args.ip or (ts.get("pixel", {}).get("ip") if ts.get("pixel") else mgr.known_pixel_ip)
+        print(f"Pairing with {ip}:{args.port} using code {args.code}...")
+        res = mgr.adb_pair(ip, args.port, args.code)
+        if args.json:
+            print(json.dumps(res))
+        else:
+            if res.get("success"):
+                print(f"\033[1;32m✓ Successfully paired with {ip}:{args.port}\033[0m")
+            else:
+                print(f"\033[1;31m✗ Pairing failed: {res.get('output') or res.get('error')}\033[0m")
+
+    elif args.command == "stream":
+        ts = mgr.get_tailscale_status()
+        ip = args.ip or (ts.get("pixel", {}).get("ip") if ts.get("pixel") else mgr.known_pixel_ip)
+        opts = StreamOptions(
+            serial=f"{ip}:5555",
+            bitrate=args.bitrate,
+            max_size=args.max_size,
+            max_fps=args.max_fps,
+            audio=not args.no_audio,
+            turn_screen_off=args.turn_screen_off,
+            stay_awake=args.stay_awake,
+            fullscreen=args.fullscreen,
+            record_path=args.record,
+        )
+        print(f"Launching scrcpy screen mirror for {ip}...")
+        res = mgr.start_scrcpy(opts)
+        if args.json:
+            print(json.dumps(res))
+        else:
+            if res.get("success"):
+                print(f"\033[1;32m✓ Scrcpy mirror running (PID: {res.get('pid')})\033[0m")
+            else:
+                print(f"\033[1;31m✗ Could not start stream: {res.get('error')}\033[0m")
+
+    elif args.command == "stop":
+        res = mgr.stop_scrcpy()
+        if args.json:
+            print(json.dumps(res))
+        else:
+            print("Stopped scrcpy mirror.")
+
+    elif args.command == "screenshot":
+        res = mgr.capture_screenshot(args.out)
+        if args.json:
+            print(json.dumps(res))
+        else:
+            if res.get("success"):
+                print(f"\033[1;32m✓ Screenshot saved to {res.get('path')} ({res.get('size_bytes')} bytes)\033[0m")
+            else:
+                print(f"\033[1;31m✗ Screenshot capture failed: {res.get('error')}\033[0m")
+
+    elif args.command == "battery":
+        b = mgr.get_battery_info()
+        if args.json:
+            print(json.dumps(b))
+        else:
+            if b.get("success"):
+                chg = "Charging ⚡" if b.get("charging") else "Discharging"
+                print(f"Battery: {b.get('percent')}% | Status: {chg} | Temp: {b.get('temperature_c')}°C | Voltage: {b.get('voltage_mv')} mV")
+            else:
+                print("Could not read battery info. Ensure device is connected via ADB.")
+
+    elif args.command == "text":
+        res = mgr.send_text(args.input_text)
+        if args.json:
+            print(json.dumps(res))
+        else:
+            print(f"Typed '{args.input_text}' on Pixel.")
+
+    elif args.command == "key":
+        keymap = {"home": 3, "back": 4, "power": 26, "recents": 187, "volup": 24, "voldown": 25, "mute": 164}
+        res = mgr.send_keyevent(keymap[args.keyname])
+        if args.json:
+            print(json.dumps(res))
+        else:
+            print(f"Triggered key {args.keyname}.")
+
+    elif args.command == "qr":
+        ts = mgr.get_tailscale_status()
+        self_ip = ts.get("self", {}).get("ip", "100.106.132.5")
+        mobile_url = f"http://{self_ip}:8148/mobile"
+        generate_terminal_qr(mobile_url)
+
+    elif args.command == "gui":
+        import webbrowser
+        ts = mgr.get_tailscale_status()
+        self_ip = ts.get("self", {}).get("ip", "127.0.0.1")
+        webbrowser.open(f"http://127.0.0.1:8148")
+
+    elif args.command == "serve":
+        import uvicorn
+        print(f"Starting PixelCast Server on {args.host}:{args.port}...")
+        uvicorn.run("pixel_cast.server:app", host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()
