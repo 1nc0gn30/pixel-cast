@@ -473,6 +473,22 @@
   </footer>
 
   <script src="app.js"></script>
-  <script src="/assets/sovereign-upgrade.js" defer></script>
+  
+
+  <script src="/sovereign_tutorial.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", function() {
+      if (window.createSovereignTutorial) {
+        window.createSovereignTutorial({
+          toolId: "pixel-cast",
+          toolName: "PixelCast",
+          tagline: "Ultra-low latency wireless Google Pixel screen mirroring and ADB bridge!",
+          accentColor: "#3B82F6",
+          steps: [{"icon": "\ud83d\udcf1", "title": "Wireless Screen Mirroring", "desc": "Cast your Google Pixel or Android screen directly to your desktop browser with near-zero lag over Tailscale mesh."}, {"icon": "\ud83d\udcf7", "title": "Live Camera Bridge", "desc": "Stream your phone's high-definition camera into your desktop AI models as an edge vision sensor."}, {"icon": "\u2328\ufe0f", "title": "Remote ADB Controls", "desc": "Type text, tap buttons, and run automated Android terminal commands hands-free."}]
+        });
+      }
+    });
+  </script>
+
 </body>
 </html>
