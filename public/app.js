@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const solTipAddr = document.getElementById('solTipAddr');
 
-  let currentTargetIp = '100.106.39.46';
+  let currentTargetIp = '100.64.0.10';
   let isStreamActive = false;
   let ws = null;
 
@@ -442,11 +442,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { btnCopyUrl.innerText = 'Copy'; }, 1500);
   });
 
-  solTipAddr.parentElement.addEventListener('click', () => {
-    navigator.clipboard.writeText(solTipAddr.innerText);
-    const originalText = solTipAddr.innerText;
-    solTipAddr.innerText = 'Copied Solana Address!';
-    setTimeout(() => { solTipAddr.innerText = originalText; }, 1500);
-  });
+  if (solTipAddr && solTipAddr.parentElement) {
+    solTipAddr.parentElement.addEventListener('click', () => {
+      navigator.clipboard.writeText(solTipAddr.innerText);
+      const originalText = solTipAddr.innerText;
+      solTipAddr.innerText = 'Copied Address!';
+      setTimeout(() => { solTipAddr.innerText = originalText; }, 1500);
+    });
+  }
 
 });

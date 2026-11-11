@@ -38,9 +38,12 @@ class PixelDevice:
     model: Optional[str] = None
 
 
+DEFAULT_TARGET_IP = os.environ.get("PIXEL_CAST_TARGET_IP", "100.64.0.10")
+
+
 @dataclass
 class StreamOptions:
-    serial: str = "100.106.39.46:5555"
+    serial: str = f"{DEFAULT_TARGET_IP}:5555"
     bitrate: str = "8M"
     max_size: int = 1080
     max_fps: int = 60
@@ -59,7 +62,7 @@ class PixelCastManager:
         self.active_stream_process: Optional[subprocess.Popen] = None
         self.stream_start_time: Optional[float] = None
         self.last_screenshot_path: Optional[str] = None
-        self.known_pixel_ip: str = "100.106.39.46"
+        self.known_pixel_ip: str = os.environ.get("PIXEL_CAST_TARGET_IP", DEFAULT_TARGET_IP)
 
     # =========================================================================
     # Tailscale Peer Discovery & Telemetry

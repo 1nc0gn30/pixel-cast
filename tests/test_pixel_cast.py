@@ -22,17 +22,17 @@ client = TestClient(app)
 def test_pixel_device_dataclass():
     dev = PixelDevice(
         name="pixel-9-pro",
-        tailscale_ip="100.106.39.46",
+        tailscale_ip="100.64.0.10",
         os_name="android",
         online=True,
         ping_ms=4.2,
         adb_connected=True,
-        adb_serial="100.106.39.46:5555",
+        adb_serial="100.64.0.10:5555",
         battery_level=94,
         battery_charging=True,
     )
     assert dev.name == "pixel-9-pro"
-    assert dev.tailscale_ip == "100.106.39.46"
+    assert dev.tailscale_ip == "100.64.0.10"
     assert dev.online is True
     assert dev.battery_level == 94
 
@@ -48,7 +48,7 @@ def test_stream_options_defaults():
 
 def test_manager_initialization_and_status():
     mgr = PixelCastManager()
-    assert mgr.known_pixel_ip == "100.106.39.46"
+    assert mgr.known_pixel_ip == "100.64.0.10"
     stream_st = mgr.get_stream_status()
     assert "active" in stream_st
     assert "uptime_seconds" in stream_st
@@ -87,11 +87,11 @@ def test_api_system_status_endpoint():
 
 
 def test_api_set_target_endpoint():
-    res = client.post("/api/target", json={"ip": "100.106.39.46"})
+    res = client.post("/api/target", json={"ip": "100.64.0.10"})
     assert res.status_code == 200
     data = res.json()
     assert data["success"] is True
-    assert data["target_ip"] == "100.106.39.46"
+    assert data["target_ip"] == "100.64.0.10"
 
 
 def test_api_stream_status_endpoint():

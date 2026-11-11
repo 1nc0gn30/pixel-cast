@@ -131,8 +131,8 @@ def cmd_status(mgr: PixelCastManager, as_json: bool = False):
         print(f"  • Stream:          \033[1;30mIDLE\033[0m (Run `pixel-cast stream` to launch)")
 
     print(f"\n\033[1;34m[WEB STATION]\033[0m")
-    print(f"  • Workstation:     http://{self_node.get('ip', '100.106.132.5')}:8148")
-    print(f"  • Mobile Cast:     http://{self_node.get('ip', '100.106.132.5')}:8148/mobile\n")
+    print(f"  • Workstation:     http://{self_node.get('ip', '127.0.0.1')}:8148")
+    print(f"  • Mobile Cast:     http://{self_node.get('ip', '127.0.0.1')}:8148/mobile\n")
 
 
 def main():
@@ -195,7 +195,7 @@ def main():
 
     # serve
     p_srv = subparsers.add_parser("serve", help="Run PixelCast Standalone Web Workstation Server")
-    p_srv.add_argument("--host", default="0.0.0.0", help="Host interface (default 0.0.0.0)")
+    p_srv.add_argument("--host", default="127.0.0.1", help="Host interface (default 127.0.0.1; pass <tailscale-ip> for mesh)")
     p_srv.add_argument("--port", type=int, default=8148, help="Port (default 8148)")
 
     # qr
@@ -315,7 +315,7 @@ def main():
 
     elif args.command == "qr":
         ts = mgr.get_tailscale_status()
-        self_ip = ts.get("self", {}).get("ip", "100.106.132.5")
+        self_ip = ts.get("self", {}).get("ip", "127.0.0.1")
         mobile_url = f"http://{self_ip}:8148/mobile"
         generate_terminal_qr(mobile_url)
 

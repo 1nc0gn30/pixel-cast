@@ -297,7 +297,7 @@ async def get_qr(url: Optional[str] = None):
     target_url = url
     if not target_url:
         ts = manager.get_tailscale_status()
-        self_ip = ts.get("self", {}).get("ip", "100.106.132.5")
+        self_ip = ts.get("self", {}).get("ip") or os.environ.get("PIXEL_CAST_HOST_IP", "127.0.0.1")
         target_url = f"http://{self_ip}:8148/mobile"
 
     try:

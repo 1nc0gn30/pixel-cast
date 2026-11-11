@@ -1,7 +1,7 @@
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 .pytest_cache/
+.netlify/
 uploads/*
 !uploads/.gitkeep
 server.log
